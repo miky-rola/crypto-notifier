@@ -1,1 +1,12 @@
 /target
+
+# Environments
+.env
+.env.debug
+.env.copy
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
