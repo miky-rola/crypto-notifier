@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PriceData {
     pub ticker: String,
-    pub asset_type: String, // New field: "crypto" or "stock"
+    pub asset_type: String, // this here will display either its stock or crypto
     pub price_usd: f64,
     pub change_24h: f64,
     pub last_updated: String,
@@ -16,7 +16,7 @@ pub struct PriceData {
 #[derive(Debug, Clone)]
 pub struct ClientConnection {
     pub id: Uuid,
-    pub tickers: Vec<String>, // Changed to support multiple tickers
+    pub tickers: Vec<String>, 
     pub addr: actix::Addr<crate::ws::WsActor>,
 }
 
@@ -36,17 +36,17 @@ impl AppState {
     }
 
     pub async fn add_connection(&self, connection: ClientConnection) {
-        let mut connections = self.connections.write().await;
+        let mut connections: tokio::sync::RwLockWriteGuard<'_, HashMap<Uuid, ClientConnection>> = self.connections.write().await;
         connections.insert(connection.id, connection.clone());
         
         for ticker in &connection.tickers {
-            let mut count = self.connection_counts.entry(ticker.clone()).or_insert(0);
+            let mut count: dashmap::mapref::one::RefMut<'_, String, usize> = self.connection_counts.entry(ticker.clone()).or_insert(0);
             *count += 1;
         }
     }
 
     pub async fn remove_connection(&self, connection_id: Uuid) {
-        let mut connections = self.connections.write().await;
+        let mut connections: tokio::sync::RwLockWriteGuard<'_, HashMap<Uuid, ClientConnection>> = self.connections.write().await;
         if let Some(connection) = connections.remove(&connection_id) {
             for ticker in connection.tickers {
                 if let Some(mut count) = self.connection_counts.get_mut(&ticker) {

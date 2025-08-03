@@ -20,22 +20,22 @@ async fn main() -> std::io::Result<()> {
         .init();
 
     dotenv::dotenv().ok();
-    let config = AppConfig::from_env();
+    let config: AppConfig = AppConfig::from_env();
     
     info!("Starting asset price notifier on {}:{}", config.host, config.port);
     info!("Supported crypto tickers: {:?}", config.supported_crypto_tickers);
     info!("Supported stock tickers: {:?}", config.supported_stock_tickers);
     info!("Poll interval: {}s", config.poll_interval_secs);
 
-    let app_state = Arc::new(AppState::new());
+    let app_state: Arc<AppState> = Arc::new(AppState::new());
 
-    let fetcher_state = Arc::clone(&app_state);
-    let fetcher_config = config.clone();
+    let fetcher_state: Arc<AppState> = Arc::clone(&app_state);
+    let fetcher_config: AppConfig = config.clone();
     tokio::spawn(async move {
         start_price_fetcher(fetcher_state, fetcher_config).await;
     });
 
-    let bind_address = format!("{}:{}", config.host, config.port);
+    let bind_address: String = format!("{}:{}", config.host, config.port);
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(Arc::clone(&app_state)))

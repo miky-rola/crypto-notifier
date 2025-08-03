@@ -50,15 +50,15 @@ async fn fetch_crypto_prices(
     client: &reqwest::Client,
     config: &AppConfig,
 ) -> Result<Vec<PriceData>, FetchError> {
-    let tickers_param = config.supported_crypto_tickers.join(",");
-    let url = format!(
+    let tickers_param: String = config.supported_crypto_tickers.join(",");
+    let url: String = format!(
         "{}/simple/price?ids={}&vs_currencies=usd&include_24hr_change=true",
         config.coingecko_api_url, tickers_param
     );
 
     debug!("Fetching crypto prices from: {}", url);
 
-    let response = client
+    let response: reqwest::Response = client
         .get(&url)
         .timeout(Duration::from_secs(10))
         .send()
@@ -71,16 +71,16 @@ async fn fetch_crypto_prices(
         )));
     }
 
-    let body = response.text().await?;
+    let body: String = response.text().await?;
     debug!("CoinGecko API response: {}", body);
 
     let parsed: CoinGeckoResponse = serde_json::from_str(&body)?;
 
     let mut price_data_list: Vec<PriceData> = Vec::new();
-    let now = chrono::Utc::now().to_rfc3339();
+    let now: String = chrono::Utc::now().to_rfc3339();
 
     for (ticker, price_info) in parsed.prices {
-        let price_data = PriceData {
+        let price_data: PriceData = PriceData {
             ticker: ticker.clone(),
             asset_type: "crypto".to_string(),
             price_usd: price_info.usd,
@@ -98,17 +98,17 @@ async fn fetch_stock_prices(
     config: &AppConfig,
 ) -> Result<Vec<PriceData>, FetchError> {
     let mut price_data_list: Vec<PriceData> = Vec::new();
-    let now = chrono::Utc::now().to_rfc3339();
+    let now: String = chrono::Utc::now().to_rfc3339();
 
     for ticker in &config.supported_stock_tickers {
-        let url = format!(
+        let url: String = format!(
             "{}/query?function=GLOBAL_QUOTE&symbol={}&apikey={}",
             config.stock_api_url, ticker, "demo" // Replace with actual API key in production
         );
 
         debug!("Fetching stock price for {} from: {}", ticker, url);
 
-        let response = client
+        let response: reqwest::Response = client
             .get(&url)
             .timeout(Duration::from_secs(10))
             .send()
@@ -119,7 +119,7 @@ async fn fetch_stock_prices(
             continue;
         }
 
-        let body = response.text().await?;
+        let body: String = response.text().await?;
         debug!("Stock API response for {}: {}", ticker, body);
 
         let parsed: StockResponse = serde_json::from_str(&body)?;
@@ -130,7 +130,7 @@ async fn fetch_stock_prices(
             FetchError::Format(format!("Invalid change percent format for {}", ticker))
         })?;
 
-        let price_data = PriceData {
+        let price_data: PriceData = PriceData {
             ticker: ticker.clone(),
             asset_type: "stock".to_string(),
             price_usd: price,
@@ -144,7 +144,7 @@ async fn fetch_stock_prices(
 }
 
 async fn send_price_updates(app_state: &Arc<AppState>, price_data: &PriceData) {
-    let connections = app_state.connections.read().await;
+    let connections: tokio::sync::RwLockReadGuard<'_, HashMap<uuid::Uuid, crate::state::ClientConnection>> = app_state.connections.read().await;
     
     for (conn_id, connection) in connections.iter() {
         if connection.tickers.contains(&price_data.ticker) {
@@ -172,7 +172,7 @@ pub async fn start_price_fetcher(app_state: Arc<AppState>, config: AppConfig) {
         .build()
         .expect("Failed to create HTTP client");
 
-    let mut interval = time::interval(Duration::from_secs(config.poll_interval_secs));
+    let mut interval: time::Interval = time::interval(Duration::from_secs(config.poll_interval_secs));
     
     loop {
         interval.tick().await;
@@ -184,9 +184,9 @@ pub async fn start_price_fetcher(app_state: Arc<AppState>, config: AppConfig) {
             Ok(price_data_list) => {
                 info!("Successfully fetched {} crypto price updates", price_data_list.len());
                 for price_data in price_data_list {
-                    let should_update = if let Some(existing) = app_state.get_price(&price_data.ticker) {
-                        let price_diff = (price_data.price_usd - existing.price_usd).abs();
-                        let change_threshold = existing.price_usd * 0.001;
+                    let should_update: bool = if let Some(existing) = app_state.get_price(&price_data.ticker) {
+                        let price_diff: f64 = (price_data.price_usd - existing.price_usd).abs();
+                        let change_threshold: f64 = existing.price_usd * 0.001;
                         price_diff > change_threshold
                     } else {
                         true

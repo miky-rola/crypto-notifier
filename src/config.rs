@@ -23,12 +23,12 @@ impl AppConfig {
             supported_crypto_tickers: env::var("SUPPORTED_CRYPTO_TICKERS")
                 .unwrap_or_else(|_| "bitcoin,ethereum,cardano,polkadot,chainlink".to_string())
                 .split(',')
-                .map(|s| s.trim().to_lowercase())
+                .map(|s: &str| s.trim().to_lowercase())
                 .collect(),
             supported_stock_tickers: env::var("SUPPORTED_STOCK_TICKERS")
                 .unwrap_or_else(|_| "AAPL,GOOGL,MSFT,AMZN,TSLA".to_string())
                 .split(',')
-                .map(|s| s.trim().to_uppercase())
+                .map(|s: &str| s.trim().to_uppercase())
                 .collect(),
             poll_interval_secs: env::var("POLL_INTERVAL_SECS")
                 .unwrap_or_else(|_| "30".to_string())

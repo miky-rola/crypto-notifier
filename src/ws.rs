@@ -29,7 +29,7 @@ pub struct WsActor {
 
 impl WsActor {
     pub fn new(app_state: Arc<AppState>, config: Arc<AppConfig>) -> Self {
-        let tickers = config.all_supported_tickers(); // Default to all tickers
+        let tickers: Vec<String> = config.all_supported_tickers(); // Default to all tickers
         Self {
             id: Uuid::new_v4(),
             tickers,
@@ -62,13 +62,13 @@ impl WsActor {
     }
 
     fn update_subscriptions(&mut self, tickers: Option<Vec<String>>) {
-        let new_tickers = match tickers {
+        let new_tickers: Vec<String> = match tickers {
             Some(tickers) => {
-                let all_supported = self.config.all_supported_tickers();
+                let all_supported: Vec<String> = self.config.all_supported_tickers();
                 tickers
                     .into_iter()
                     .filter(|t| all_supported.contains(&t.to_lowercase()) || all_supported.contains(&t.to_uppercase()))
-                    .map(|t| if all_supported.contains(&t.to_uppercase()) { t.to_uppercase() } else { t.to_lowercase() })
+                    .map(|t: String| if all_supported.contains(&t.to_uppercase()) { t.to_uppercase() } else { t.to_lowercase() })
                     .collect()
             }
             None => self.config.all_supported_tickers(),
@@ -85,13 +85,13 @@ impl Actor for WsActor {
         
         self.hb(ctx);
         
-        let connection = ClientConnection {
+        let connection: ClientConnection = ClientConnection {
             id: self.id,
             tickers: self.tickers.clone(),
             addr: ctx.address(),
         };
         
-        let app_state = Arc::clone(&self.app_state);
+        let app_state: Arc<AppState> = Arc::clone(&self.app_state);
         ctx.spawn(
             async move {
                 app_state.add_connection(connection).await;
@@ -99,8 +99,8 @@ impl Actor for WsActor {
             .into_actor(self)
         );
 
-        let tickers = self.tickers.clone();
-        let app_state = Arc::clone(&self.app_state);
+        let tickers: Vec<String> = self.tickers.clone();
+        let app_state: Arc<AppState> = Arc::clone(&self.app_state);
         ctx.spawn(
             async move {
                 for ticker in &tickers {
@@ -114,7 +114,7 @@ impl Actor for WsActor {
                 String::new()
             }
             .into_actor(self)
-            .map(|json, _act, ctx| {
+            .map(|json: String, _act: &mut WsActor, ctx: &mut ws::WebsocketContext<WsActor>| {
                 if !json.is_empty() {
                     ctx.text(json);
                 }
@@ -125,8 +125,8 @@ impl Actor for WsActor {
     fn stopped(&mut self, _ctx: &mut Self::Context) {
         info!("WebSocket connection {} stopped", self.id);
         
-        let app_state = Arc::clone(&self.app_state);
-        let connection_id = self.id;
+        let app_state: Arc<AppState> = Arc::clone(&self.app_state);
+        let connection_id: Uuid = self.id;
         
         tokio::spawn(async move {
             app_state.remove_connection(connection_id).await;
@@ -169,10 +169,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
                 match serde_json::from_str::<SubscriptionRequest>(&text) {
                     Ok(sub_request) => {
                         self.update_subscriptions(sub_request.tickers);
-                        let app_state = Arc::clone(&self.app_state);
-                        let tickers = self.tickers.clone();
-                        let connection_id = self.id;
-                        let addr = ctx.address();
+                        let app_state: Arc<AppState> = Arc::clone(&self.app_state);
+                        let tickers: Vec<String> = self.tickers.clone();
+                        let connection_id: Uuid = self.id;
+                        let addr: actix::Addr<WsActor> = ctx.address();
                         ctx.spawn(
                             async move {
                                 app_state.remove_connection(connection_id).await;
@@ -184,8 +184,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
                             }
                             .into_actor(self)
                         );
-                        let app_state = Arc::clone(&self.app_state);
-                        let tickers = self.tickers.clone();
+                        let app_state: Arc<AppState> = Arc::clone(&self.app_state);
+                        let tickers: Vec<String> = self.tickers.clone();
                         ctx.spawn(
                             async move {
                                 for ticker in &tickers {
@@ -199,7 +199,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsActor {
                                 String::new()
                             }
                             .into_actor(self)
-                            .map(|json, _act, ctx| {
+                            .map(|json: String, _act: &mut WsActor, ctx: &mut ws::WebsocketContext<WsActor>| {
                                 if !json.is_empty() {
                                     ctx.text(json);
                                 }
@@ -233,8 +233,8 @@ pub async fn websocket_handler(
 ) -> Result<HttpResponse> {
     info!("New WebSocket connection request");
     
-    let max_connections = config.max_connections_per_ticker;
-    let all_tickers = config.all_supported_tickers();
+    let max_connections: usize = config.max_connections_per_ticker;
+    let all_tickers: Vec<String> = config.all_supported_tickers();
     
     for ticker in &all_tickers {
         if app_state.get_connection_count(ticker) >= max_connections {
@@ -247,7 +247,7 @@ pub async fn websocket_handler(
         }
     }
     
-    let ws_actor = WsActor::new(app_state.get_ref().clone(), Arc::new(config.get_ref().clone()));
+    let ws_actor: WsActor = WsActor::new(app_state.get_ref().clone(), Arc::new(config.get_ref().clone()));
     
     ws::start(ws_actor, &req, stream)
 }

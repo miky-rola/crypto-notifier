@@ -18,9 +18,9 @@ pub async fn get_price(
     app_state: web::Data<Arc<AppState>>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
-    let ticker = path.into_inner();
-    let ticker_lower = ticker.to_lowercase();
-    let ticker_upper = ticker.to_uppercase();
+    let ticker: String = path.into_inner();
+    let ticker_lower: String = ticker.to_lowercase();
+    let ticker_upper: String = ticker.to_uppercase();
     
     if !config.all_supported_tickers().contains(&ticker_lower) && !config.all_supported_tickers().contains(&ticker_upper) {
         return Ok(HttpResponse::BadRequest().json(serde_json::json!({
@@ -29,7 +29,7 @@ pub async fn get_price(
         })));
     }
     
-    let ticker = if config.supported_crypto_tickers.contains(&ticker_lower) {
+    let ticker: String = if config.supported_crypto_tickers.contains(&ticker_lower) {
         ticker_lower
     } else {
         ticker_upper
@@ -53,7 +53,7 @@ pub async fn get_tickers(
     app_state: web::Data<Arc<AppState>>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse> {
-    let available_tickers = app_state.get_all_tickers();
+    let available_tickers: Vec<String> = app_state.get_all_tickers();
     
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "supported_crypto_tickers": config.supported_crypto_tickers,
