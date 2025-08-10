@@ -28,6 +28,7 @@ struct StockResponse {
     global_quote: StockPrice,
 }
 
+
 #[derive(Debug, Deserialize)]
 struct StockPrice {
     #[serde(rename = "05. price")]
@@ -35,6 +36,7 @@ struct StockPrice {
     #[serde(rename = "10. change percent")]
     change_percent: String,
 }
+
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
